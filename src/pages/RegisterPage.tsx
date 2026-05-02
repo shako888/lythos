@@ -56,7 +56,7 @@ export default function RegisterPage() {
   const [modalMsg, setModalMsg] = useState<string | null>(null);
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success'>('idle');
   const [weakTopics, setWeakTopics] = useState<string[]>([]);
-  const [captchaVerified, setCaptchaVerified] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     studentName: '', parentName: '', age: '', email: '', phone: '',
@@ -65,7 +65,7 @@ export default function RegisterPage() {
     hskCurrentLevel: '', hskTargetLevel: '', adultGoal: '',
     preferredDay: '', preferredTime: '', hearFrom: '', message: '',
     freeTrial: false,
-    website: '' // HONEY POT: This field is hidden from humans
+    website: ''
   });
 
   const isHSK = formData.lessonType === 'hsk';
@@ -98,7 +98,6 @@ export default function RegisterPage() {
   };
 
   const handleSubmit = async () => {
-    // BOT DETECTION: Check Honey Pot (Direct DOM check for instant detection)
     const honeypotEl = document.getElementById('website') as HTMLInputElement;
     const isBot = (honeypotEl && honeypotEl.value !== '') || formData.website !== '';
 
@@ -106,14 +105,12 @@ export default function RegisterPage() {
       console.warn("Honey Pot caught a bot!");
       setStatus('submitting');
       try {
-        // Fetch IP
         const res = await fetch('https://api.ipify.org?format=json');
         const data = await res.json();
         const ip = data.ip;
         const ipDocId = ip.replace(/\./g, '_');
         const docRef = doc(db, 'banned_ips', ipDocId);
         
-        // Read current strikes
         const snap = await getDoc(docRef);
         let strikes = 1;
         if (snap.exists()) {
@@ -124,19 +121,15 @@ export default function RegisterPage() {
         const penaltyData: any = { ip, strikes, lastTriggered: serverTimestamp() };
 
         if (strikes >= 5) {
-          // 24-hour ban
           const banUntil = new Date(now.getTime() + 24 * 60 * 60 * 1000);
           penaltyData.bannedUntil = banUntil;
           penaltyData.timeoutUntil = null;
         } else {
-          // 3-minute timeout
           const timeoutUntil = new Date(now.getTime() + 3 * 60 * 1000);
           penaltyData.timeoutUntil = timeoutUntil;
         }
 
         await setDoc(docRef, penaltyData, { merge: true });
-        
-        // The global IPBlocker will catch this and lock the screen.
       } catch (err) {
         console.error("Failed to apply IP ban", err);
       }
@@ -340,12 +333,10 @@ export default function RegisterPage() {
             <p className="text-xs opacity-70 mt-0.5">No payment required. First class is completely free.</p>
           </div>
         </button>
-        {/* CAPTCHA */}
         <div className="pt-2">
-          <LythosCaptcha onVerify={verified => setCaptchaVerified(verified)} />
+          <LythosCaptcha onVerify={token => setCaptchaToken(token)} />
         </div>
 
-        {/* HONEY POT - HIDDEN FROM HUMANS BUT NOT FROM BOTS */}
         <div style={{ opacity: 0, position: 'absolute', top: 0, left: 0, height: 0, width: 0, zIndex: -1, overflow: 'hidden' }}>
           <label htmlFor="website">Leave this field empty</label>
           <input 
@@ -417,7 +408,7 @@ export default function RegisterPage() {
             <button
               type="button"
               onClick={step < totalSteps - 1 ? handleNext : handleSubmit}
-              disabled={!canProceed() || status === 'submitting' || (step === totalSteps - 1 && !captchaVerified)}
+              disabled={!canProceed() || status === 'submitting' || (step === totalSteps - 1 && typeof captchaToken !== 'string')}
               className="flex-1 flex items-center justify-center gap-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold py-3.5 rounded-xl hover:bg-slate-800 dark:hover:bg-slate-100 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg"
             >
               {status === 'submitting' ? (

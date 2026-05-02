@@ -5,49 +5,43 @@ import { Check, RefreshCw, ShieldCheck } from 'lucide-react';
 type CaptchaState = 'idle' | 'verifying' | 'challenge' | 'verified' | 'failed';
 
 interface Props {
-  onVerify: (verified: boolean) => void;
+  onVerify: (token: string | null) => void;
 }
 
 const CHALLENGES = [
   {
     question: 'Select all tiles showing the character 你 (you)',
     tiles: ['你', '我', '他', '你', '是', '的'],
-    solutionHash: "0|3|lythos_salt_99", // Hashed: [0, 3]
+    solutionHash: "0|3|lythos_salt_99",
   },
   {
     question: 'Select all tiles showing the character 好 (good)',
     tiles: ['好', '不', '好', '是', '了', '啊'],
-    solutionHash: "0|2|lythos_salt_99", // Hashed: [0, 2]
+    solutionHash: "0|2|lythos_salt_99",
   },
   {
     question: 'Select all tiles showing the character 中 (China / middle)',
     tiles: ['大', '中', '小', '中', '学', '文'],
-    solutionHash: "1|3|lythos_salt_99", // Hashed: [1, 3]
+    solutionHash: "1|3|lythos_salt_99",
   },
   {
     question: 'Select all tiles showing the character 学 (study / learn)',
     tiles: ['学', '习', '学', '校', '生', '好'],
-    solutionHash: "0|2|lythos_salt_99", // Hashed: [0, 2]
+    solutionHash: "0|2|lythos_salt_99",
   },
   {
     question: 'Select all tiles showing the character 文 (language / culture)',
     tiles: ['语', '文', '字', '文', '言', '书'],
-    solutionHash: "1|3|lythos_salt_99", // Hashed: [1, 3]
+    solutionHash: "1|3|lythos_salt_99",
   },
 ];
 
-// Helper to check if event is a genuine, untampered browser event
 const isGenuineEvent = (e: any) => {
-  // 1. Must be a genuine DOM Event (covers MouseEvent, PointerEvent, TouchEvent on mobile)
-  // A script passing a plain object { isTrusted: true } will fail this.
-  if (!e || !(e.nativeEvent instanceof Event)) return false;
-  
-  // 2. The browser itself must vouch for the event's authenticity.
-  // nativeEvent.isTrusted is a read-only property enforced by the browser engine.
-  return e.nativeEvent.isTrusted === true && e.isTrusted === true;
+  if (!e || !e.nativeEvent) return false;
+  if (Object.prototype.toString.call(e.nativeEvent) === '[object Object]') return false;
+  return e.nativeEvent.isTrusted === true;
 };
 
-// Sub-component to render character on canvas (prevents text scraping)
 function CharacterCanvas({ char }: { char: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -57,19 +51,16 @@ function CharacterCanvas({ char }: { char: string }) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Clear and draw
     ctx.clearRect(0, 0, 80, 80);
     ctx.font = 'bold 42px "Noto Serif SC", serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     
-    // Add some random "noise" / tilt to make OCR harder
     const tilt = (Math.random() - 0.5) * 0.2;
     ctx.save();
     ctx.translate(40, 40);
     ctx.rotate(tilt);
     
-    // Draw character
     ctx.fillStyle = document.documentElement.classList.contains('dark') ? '#f1f5f9' : '#1e293b';
     ctx.fillText(char, 0, 0);
     ctx.restore();
@@ -84,15 +75,21 @@ export default function LythosCaptcha({ onVerify }: Props) {
   const [selected, setSelected] = useState<number[]>([]);
   const [attempts, setAttempts] = useState(0);
   const [shake, setShake] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
   const mouseTrajectory = useRef<{x: number, y: number, t: number}[]>([]);
   const lastEventTime = useRef<number>(0);
   const challengeStartTime = useRef<number>(0);
+  const isTouchDevice = useRef<boolean>(false);
 
-  // Auto-run verification simulation on checkbox click
+  useEffect(() => {
+    const handleTouch = () => { isTouchDevice.current = true; };
+    window.addEventListener('touchstart', handleTouch, { once: true });
+    return () => window.removeEventListener('touchstart', handleTouch);
+  }, []);
+
   useEffect(() => {
     if (state !== 'verifying') return;
     const t = setTimeout(() => {
-      // Behavioral analysis: Check if movement looks human
       const traj = mouseTrajectory.current;
       const isHuman = analyzeTrajectory(traj);
       
@@ -103,17 +100,19 @@ export default function LythosCaptcha({ onVerify }: Props) {
         setState('failed');
       } else {
         setState('challenge');
-        challengeStartTime.current = Date.now(); // Record start time
+        challengeStartTime.current = performance.now();
+        setTimeout(() => {
+          containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 100);
       }
     }, 1400);
     return () => clearTimeout(t);
   }, [state]);
 
   const analyzeTrajectory = (traj: {x: number, y: number, t: number}[]) => {
-    // If very few data points, likely a bot directly clicking
+    if (isTouchDevice.current) return true;
     if (traj.length < 5) return false;
     
-    // Check for perfect linearity (robots often move in straight lines)
     let xVar = 0, yVar = 0;
     const xMean = traj.reduce((sum, p) => sum + p.x, 0) / traj.length;
     const yMean = traj.reduce((sum, p) => sum + p.y, 0) / traj.length;
@@ -126,8 +125,6 @@ export default function LythosCaptcha({ onVerify }: Props) {
     xVar /= traj.length;
     yVar /= traj.length;
     
-    // A real human mouse movement has jitter in both X and Y.
-    // If variance is extremely low, it's suspiciously perfect.
     if (xVar < 1 || yVar < 1) return false;
     
     return true;
@@ -136,8 +133,7 @@ export default function LythosCaptcha({ onVerify }: Props) {
   const handleMouseMove = (e: React.MouseEvent) => {
     if (state === 'idle') {
       if (!isGenuineEvent(e)) return;
-      const now = Date.now();
-      // Throttle collection to avoid huge arrays
+      const now = performance.now();
       if (now - lastEventTime.current > 50) {
         mouseTrajectory.current.push({ x: e.clientX, y: e.clientY, t: now });
         lastEventTime.current = now;
@@ -151,10 +147,9 @@ export default function LythosCaptcha({ onVerify }: Props) {
   };
 
   const verify = () => {
-    const elapsed = Date.now() - challengeStartTime.current;
+    const elapsed = performance.now() - challengeStartTime.current;
     
-    // BOT DETECTION: If solved too fast (under 2 seconds), it's likely a script
-    if (elapsed < 2000) {
+    if (elapsed < 500) {
       console.warn("Verification failed: Completion time too fast (potential bot).");
       setAttempts(a => a + 1);
       setShake(true);
@@ -162,7 +157,7 @@ export default function LythosCaptcha({ onVerify }: Props) {
       setSelected([]);
       if (attempts >= 2) {
         setState('failed');
-        onVerify(false);
+        onVerify(null);
       }
       return;
     }
@@ -170,7 +165,7 @@ export default function LythosCaptcha({ onVerify }: Props) {
     const userHash = [...selected].sort().join('|') + "lythos_salt_99";
     if (userHash === challenge.solutionHash) {
       setState('verified');
-      onVerify(true);
+      onVerify(userHash);
     } else {
       setAttempts(a => a + 1);
       setShake(true);
@@ -178,7 +173,7 @@ export default function LythosCaptcha({ onVerify }: Props) {
       setSelected([]);
       if (attempts >= 2) {
         setState('failed');
-        onVerify(false);
+        onVerify(null);
       }
     }
   };
@@ -187,11 +182,11 @@ export default function LythosCaptcha({ onVerify }: Props) {
     setState('idle');
     setSelected([]);
     setAttempts(0);
-    onVerify(false);
+    onVerify(null);
   };
 
   return (
-    <div className="select-none">
+    <div className="select-none" ref={containerRef}>
       {/* Main reCAPTCHA-style Widget */}
       <motion.div
         onMouseMove={handleMouseMove}
