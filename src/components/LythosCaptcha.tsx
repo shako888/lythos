@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, RefreshCw, ShieldCheck } from 'lucide-react';
-
+//please no reverse engineering, i suck at this
 type CaptchaState = 'idle' | 'verifying' | 'challenge' | 'verified' | 'failed';
 
 interface Props {
@@ -55,12 +55,12 @@ function CharacterCanvas({ char }: { char: string }) {
     ctx.font = 'bold 42px "Noto Serif SC", serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    
+
     const tilt = (Math.random() - 0.5) * 0.2;
     ctx.save();
     ctx.translate(40, 40);
     ctx.rotate(tilt);
-    
+
     ctx.fillStyle = document.documentElement.classList.contains('dark') ? '#f1f5f9' : '#1e293b';
     ctx.fillText(char, 0, 0);
     ctx.restore();
@@ -76,7 +76,7 @@ export default function LythosCaptcha({ onVerify }: Props) {
   const [attempts, setAttempts] = useState(0);
   const [shake, setShake] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const mouseTrajectory = useRef<{x: number, y: number, t: number}[]>([]);
+  const mouseTrajectory = useRef<{ x: number, y: number, t: number }[]>([]);
   const lastEventTime = useRef<number>(0);
   const challengeStartTime = useRef<number>(0);
   const isTouchDevice = useRef<boolean>(false);
@@ -92,7 +92,7 @@ export default function LythosCaptcha({ onVerify }: Props) {
     const t = setTimeout(() => {
       const traj = mouseTrajectory.current;
       const isHuman = analyzeTrajectory(traj);
-      
+
       if (!isHuman) {
         setAttempts(a => a + 1);
         setShake(true);
@@ -109,24 +109,24 @@ export default function LythosCaptcha({ onVerify }: Props) {
     return () => clearTimeout(t);
   }, [state]);
 
-  const analyzeTrajectory = (traj: {x: number, y: number, t: number}[]) => {
+  const analyzeTrajectory = (traj: { x: number, y: number, t: number }[]) => {
     if (isTouchDevice.current) return true;
     if (traj.length < 5) return false;
-    
+
     let xVar = 0, yVar = 0;
     const xMean = traj.reduce((sum, p) => sum + p.x, 0) / traj.length;
     const yMean = traj.reduce((sum, p) => sum + p.y, 0) / traj.length;
-    
+
     traj.forEach(p => {
       xVar += Math.pow(p.x - xMean, 2);
       yVar += Math.pow(p.y - yMean, 2);
     });
-    
+
     xVar /= traj.length;
     yVar /= traj.length;
-    
+
     if (xVar < 1 || yVar < 1) return false;
-    
+
     return true;
   };
 
@@ -148,7 +148,7 @@ export default function LythosCaptcha({ onVerify }: Props) {
 
   const verify = () => {
     const elapsed = performance.now() - challengeStartTime.current;
-    
+
     if (elapsed < 500) {
       console.warn("Verification failed: Completion time too fast (potential bot).");
       setAttempts(a => a + 1);
@@ -210,13 +210,12 @@ export default function LythosCaptcha({ onVerify }: Props) {
               disabled={state === 'verifying' || state === 'verified'}
               className="relative w-7 h-7 flex-shrink-0"
             >
-              <div className={`w-7 h-7 rounded border-2 transition-all flex items-center justify-center ${
-                state === 'verified'
+              <div className={`w-7 h-7 rounded border-2 transition-all flex items-center justify-center ${state === 'verified'
                   ? 'bg-emerald-500 border-emerald-500'
                   : state === 'failed'
-                  ? 'border-red-400 bg-red-50 dark:bg-red-900/20'
-                  : 'border-slate-300 dark:border-slate-500 hover:border-slate-500 dark:hover:border-slate-300 cursor-pointer bg-white dark:bg-slate-700'
-              }`}>
+                    ? 'border-red-400 bg-red-50 dark:bg-red-900/20'
+                    : 'border-slate-300 dark:border-slate-500 hover:border-slate-500 dark:hover:border-slate-300 cursor-pointer bg-white dark:bg-slate-700'
+                }`}>
                 {state === 'verifying' && (
                   <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }}>
                     <RefreshCw className="w-4 h-4 text-slate-500 dark:text-slate-300" />
@@ -280,16 +279,15 @@ export default function LythosCaptcha({ onVerify }: Props) {
                       key={i}
                       type="button"
                       onClick={(e) => {
-                        if (!isGenuineEvent(e)) return; 
+                        if (!isGenuineEvent(e)) return;
                         toggleTile(i);
                       }}
                       whileHover={{ scale: 1.04 }}
                       whileTap={{ scale: 0.97 }}
-                      className={`aspect-square flex items-center justify-center rounded-xl border-2 transition-all duration-150 ${
-                        selected.includes(i)
+                      className={`aspect-square flex items-center justify-center rounded-xl border-2 transition-all duration-150 ${selected.includes(i)
                           ? 'border-slate-900 dark:border-white bg-slate-900 dark:bg-white shadow-lg'
                           : 'border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/60 hover:border-slate-400 dark:hover:border-slate-400'
-                      }`}
+                        }`}
                     >
                       <CharacterCanvas char={char} />
                     </motion.button>
