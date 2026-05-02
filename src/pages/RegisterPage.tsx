@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { collection, addDoc, serverTimestamp, getDocs, query, where, doc, getDoc, setDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { CheckSquare, Square, ChevronRight, ChevronLeft, X, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -139,32 +139,6 @@ export default function RegisterPage() {
 
     setStatus('submitting');
     try {
-      const q = query(collection(db, 'registrations'), where('email', '==', formData.email));
-      const snap = await getDocs(q);
-      let hasFreeTrial = false, duplicateStudent = false, emailCount = 0;
-      snap.forEach(doc => {
-        const d = doc.data();
-        emailCount++;
-        if (d.freeTrial) hasFreeTrial = true;
-        if (d.studentName === formData.studentName && d.age === formData.age) duplicateStudent = true;
-      });
-
-      if (emailCount > 0) {
-        setModalMsg('You have already registered. Please wait for my reply — I will be in touch within 24 hours!');
-        setStatus('idle');
-        return;
-      }
-      if (formData.freeTrial && hasFreeTrial) {
-        setModalMsg('This email has already claimed a free trial. Please uncheck the free trial option to register for regular classes.');
-        setStatus('idle');
-        return;
-      }
-      if (duplicateStudent) {
-        setModalMsg('A registration for this student already exists under this email address.');
-        setStatus('idle');
-        return;
-      }
-
       await addDoc(collection(db, 'registrations'), {
         ...formData, weakTopics, isAdult: !isMinor, contacted: false, createdAt: serverTimestamp(),
       });
