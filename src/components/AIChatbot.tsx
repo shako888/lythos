@@ -191,7 +191,13 @@ export default function AIChatbot() {
                   <Send className="w-3.5 h-3.5 text-white dark:text-slate-900" />
                 </button>
               </div>
-              <p className="text-center text-xs text-slate-400 mt-2">Only answers questions about Lythos programs</p>
+              <div className="text-center mt-2.5 space-y-1">
+                <p className="text-[10px] text-slate-400">Only answers questions about Lythos programs.</p>
+                <p className="text-[10px] text-slate-400">
+                  By chatting, you auto-agree to our{' '}
+                  <a href="/terms" target="_blank" className="underline hover:text-slate-600 dark:hover:text-slate-300">Privacy Policy & TOS</a>.
+                </p>
+              </div>
             </div>
           </motion.div>
         )}

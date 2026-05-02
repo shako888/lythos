@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, RefreshCw, ShieldCheck } from 'lucide-react';
+import { Check, RefreshCw, ShieldCheck, X } from 'lucide-react';
 //please no reverse engineering, i suck at this
 type CaptchaState = 'idle' | 'verifying' | 'challenge' | 'verified' | 'failed';
 
@@ -75,6 +75,7 @@ export default function LythosCaptcha({ onVerify }: Props) {
   const [selected, setSelected] = useState<number[]>([]);
   const [attempts, setAttempts] = useState(0);
   const [shake, setShake] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const mouseTrajectory = useRef<{ x: number, y: number, t: number }[]>([]);
   const lastEventTime = useRef<number>(0);
@@ -162,7 +163,7 @@ export default function LythosCaptcha({ onVerify }: Props) {
       return;
     }
 
-    const userHash = [...selected].sort().join('|') + "lythos_salt_99";
+    const userHash = [...selected].sort().join('|') + "|lythos_salt_99";
     if (userHash === challenge.solutionHash) {
       setState('verified');
       onVerify(userHash);
@@ -247,13 +248,17 @@ export default function LythosCaptcha({ onVerify }: Props) {
           </div>
 
           {/* Branding */}
-          <div className="text-right">
+          <button 
+            type="button" 
+            onClick={() => setShowInfo(true)}
+            className="text-right text-left hover:opacity-80 transition-opacity cursor-pointer group"
+          >
             <div className="flex items-center justify-end gap-1.5 mb-0.5">
-              <ShieldCheck className="w-4 h-4 text-slate-400" />
-              <span className="font-serif font-bold text-slate-700 dark:text-slate-200 text-sm tracking-wide">LYTHOS</span>
+              <ShieldCheck className="w-4 h-4 text-slate-400 group-hover:text-slate-500 dark:group-hover:text-slate-300 transition-colors" />
+              <span className="font-serif font-bold text-slate-700 dark:text-slate-200 text-sm tracking-wide group-hover:text-slate-900 dark:group-hover:text-white transition-colors">LYTHOS</span>
             </div>
-            <p className="text-xs text-slate-400 dark:text-slate-500">Protected</p>
-          </div>
+            <p className="text-xs text-slate-400 dark:text-slate-500 group-hover:text-slate-500 dark:group-hover:text-slate-400 transition-colors">Protected</p>
+          </button>
         </div>
 
         {/* Challenge Panel */}
@@ -305,11 +310,67 @@ export default function LythosCaptcha({ onVerify }: Props) {
                 >
                   Verify →
                 </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowInfo(true)}
+                  className="mt-4 flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-500 dark:text-slate-500 dark:hover:text-slate-300 transition-colors cursor-pointer w-full"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span className="text-[10px] uppercase tracking-wider font-semibold">Protected by Lythos Security</span>
+                </button>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
       </motion.div>
+
+      {/* Info Modal */}
+      <AnimatePresence>
+        {showInfo && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowInfo(false)} />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative w-full max-w-sm bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-700 p-6 overflow-hidden"
+            >
+              <button 
+                onClick={() => setShowInfo(false)}
+                className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-slate-900 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
+                  <ShieldCheck className="w-5 h-5 text-white" />
+                </div>
+                <h3 className="font-serif font-bold text-lg text-slate-900 dark:text-white">Lythos Security</h3>
+              </div>
+              
+              <div className="space-y-3 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                <p>
+                  This registration form is protected by a custom-tailored, multi-layered security architecture built specifically for this platform.
+                </p>
+                <ul className="list-disc pl-5 space-y-1.5 text-slate-500 dark:text-slate-400">
+                  <li><strong>Behavioral Analysis:</strong> Evaluates mouse trajectories and touch velocities in real-time.</li>
+                  <li><strong>Canvas Obfuscation:</strong> Prevents OCR (Optical Character Recognition) bots from reading the challenge text.</li>
+                  <li><strong>Event Verification:</strong> Validates at the kernel level that clicks originate from genuine human inputs, not simulated scripts.</li>
+                </ul>
+              </div>
+
+              <button
+                onClick={() => setShowInfo(false)}
+                className="mt-6 w-full py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold rounded-xl transition-colors"
+              >
+                Understood
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { collection, addDoc, serverTimestamp, getDocs, query, where, doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { CheckSquare, Square, ChevronRight, ChevronLeft, X, AlertCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import LythosCaptcha from '../components/LythosCaptcha';
 
 const inputClass = 'w-full px-4 py-3.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-slate-800 dark:focus:ring-slate-300 focus:border-transparent outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-400 shadow-sm';
@@ -398,7 +399,16 @@ export default function RegisterPage() {
             </motion.div>
           </AnimatePresence>
 
-          <div className="flex gap-3 mt-8">
+          {step === totalSteps - 1 && (
+            <p className="mt-6 text-center text-xs text-slate-500 dark:text-slate-400">
+              By submitting this form, you auto-agree to our{' '}
+              <Link to="/terms" target="_blank" className="font-semibold text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white underline transition-colors">
+                Terms of Service & Privacy Policy
+              </Link>.
+            </p>
+          )}
+
+          <div className="flex gap-3 mt-6">
             {step > 0 && (
               <button type="button" onClick={() => setStep(s => s - 1)}
                 className="flex items-center gap-2 px-5 py-3 rounded-xl border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors font-medium text-sm">

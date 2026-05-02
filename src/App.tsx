@@ -8,6 +8,7 @@ import SyllabusPage from './pages/SyllabusPage';
 import RegisterPage from './pages/RegisterPage';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
+import TermsPage from './pages/TermsPage';
 import IPBlocker from './components/IPBlocker';
 
 function ScrollToTop() {
@@ -17,7 +18,7 @@ function ScrollToTop() {
 }
 
 // Admin pages don't show the Navbar
-const publicNavbarRoutes = ['/', '/about', '/syllabus', '/register'];
+const publicNavbarRoutes = ['/', '/about', '/syllabus', '/register', '/terms'];
 
 function Layout() {
   const { pathname } = useLocation();
@@ -32,6 +33,7 @@ function Layout() {
           <Route path="/about" element={<AboutPage />} />
           <Route path="/syllabus" element={<SyllabusPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/terms" element={<TermsPage />} />
           <Route path="/admin" element={<AdminLogin />} />
           <Route
             path="/admin/dashboard"
